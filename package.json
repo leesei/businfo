@@ -1,0 +1,20 @@
+{
+  "name": "hkbus",
+  "version": "0.5.0",
+  "description": "Get bus stops and eta in Hong Kong.",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/leesei/hkbus.git"
+  },
+  "keywords": ["bus", "hk"],
+  "author": "leesei@gmail.com",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/leesei/hkbus/issues"
+  },
+  "homepage": "https://github.com/leesei/hkbus#readme",
+  "dependencies": {
+    "isomorphic-fetch": "^2.2.1"
+  }
+}
