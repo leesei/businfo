@@ -3,15 +3,16 @@ require('isomorphic-fetch');
 // implementation of operators
 const KMB = require('./kmb');
 
-function HKBus(opts) {
-  if (opts && typeof opts != "object") {
+function HKBus (opts) {
+  if (opts && typeof opts !== 'object') {
     throw new Error('invalid options');
   }
-  const options = Object.assign(opts || {}, {
-    operator: 'kmb',
+
+  const options = Object.assign({
     lang: 'cht',
-    verbose: false
-  });
+    operator: 'kmb',
+    verbose: 0
+  }, opts);
   if (options.verbose) {
     console.log(options);
   }
@@ -19,7 +20,6 @@ function HKBus(opts) {
   switch (options.operator) {
     case 'kmb':
       return new KMB(options);
-      break;
     default:
       throw new Error(`unknown operator[${options.operator}]`);
   }

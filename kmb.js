@@ -2,14 +2,15 @@ const assert = require('assert');
 const querystring = require('querystring');
 
 const fetchJson = require('./fetchJson');
+const helper = require('./helper');
 
 function extractRouteInfo (stop, options) {
   return {
     route: stop.Route,
-    bound: stop.Bound,
+    bound: Number.parseInt(stop.Bound),
     origin: stop[options.ORIGIN_FIELD],
     dest: stop[options.DEST_FIELD]
-  }
+  };
 }
 
 function transformStop (stop, options) {
@@ -23,11 +24,18 @@ function transformStop (stop, options) {
 }
 
 function transformEta (eta) {
-  // TODO: response to be dissected
   return {
-    generated: Number.parseInt(eta.generated),
-    updated: Number.parseInt(eta.updated),
-    response: eta.response
+    generated: new Date(eta.generated),
+    updated: new Date(eta.updated),
+    eta: eta.response.map(res => {
+      return {
+        // `t` may contain "Scheduled", rip it off
+        time: res.t.split(/\s+/)[0],
+        expire: res.ex,
+        scheduled: helper.string2Boolean(res.ei),
+        wheelchair: helper.string2Boolean(res.w)
+      };
+    })
   };
 }
 
@@ -57,41 +65,50 @@ function KMBInfo (opts) {
       this.options.ORIGIN_FIELD = 'OriCName';
       this.options.DEST_FIELD = 'DestCName';
       this.options.LOCATION_FIELD = 'CLocation';
-      this.options.LANG = 2;
+      this.options.LANG = 1;
       break;
   }
 }
 
-KMBInfo.prototype.getStops = function (route) {
+KMBInfo.prototype.getStops = function (route, bound) {
   assert(route.match(/^[0-9a-zA-Z]+$/));
 
-  const query = {};
-  query.action = 'getroutebound';
-  query.route = route;
+  // boundsP is a promise of array of integers (representing bound)
+  let boundsP;
+  // bound is optional, return info for all bounds if not provided
+  if (Number.isInteger(bound)) {
+    boundsP = Promise.resolve([ bound ]);
+  } else {
+    const query = {};
+    query.action = 'getroutebound';
+    query.route = route;
 
-  if (this.options.verbose) {
-    console.log(`${KMB_API_BASE}?${querystring.stringify(query)}`)
+    if (this.options.verbose) {
+      console.log(`${KMB_API_BASE}?${querystring.stringify(query)}`);
+    }
+    boundsP = fetchJson(`${KMB_API_BASE}?${querystring.stringify(query)}`)
+      .then(result => {
+        assert(result.result);
+        return result.data.map(routebound => routebound.BOUND);
+      });
   }
-  return fetchJson(`${KMB_API_BASE}?${querystring.stringify(query)}`)
-    .then(result => {
-      assert(result.result);
-      return result.data;
-    })
+
+  return boundsP
     .then(bounds => {
       // generate `boundUrls` now that we have the bounds
       return bounds.map(bound => {
         const query = {};
         query.action = 'getstops';
         query.route = route;
-        query.bound = bound.BOUND;
-        return `${KMB_API_BASE}?${querystring.stringify(query)}`
+        query.bound = bound;
+        return `${KMB_API_BASE}?${querystring.stringify(query)}`;
       });
     })
     .then(boundUrls => {
       // map `boundUrls` to promises
       return boundUrls.map((boundUrl, boundIdx) => {
         if (this.options.verbose) {
-          console.log(`[${boundIdx}]: ${boundUrl}`)
+          console.log(`[${boundIdx}]: ${boundUrl}`);
         }
         return fetchJson(boundUrl);
       });
@@ -101,9 +118,13 @@ KMBInfo.prototype.getStops = function (route) {
         .then(results => {
           // transform results to routes
           return results.map(result => {
-            // console.log(result.data);
+            if (this.options.verbose >= 3) {
+              console.log(JSON.stringify(result, null, 2));
+            }
+            assert(result.result);
             const route = extractRouteInfo(result.data.routeStops[0], this.options);
-            route.stops = result.data.routeStops.map(stop => transformStop(stop, this.options));
+            route.stops = result.data.routeStops.map(
+              stop => transformStop(stop, this.options));
             return route;
           });
         });
@@ -121,19 +142,22 @@ KMBInfo.prototype.getEta = function (route, bound, stopCode, stopSeq) {
   query.route = route;
   query.bound = bound;
   query.servicetype = 1;
-  query.bsicode = stopCode;
+  query.bsicode = stopCode; // no need to trim '-'
   query.seq = stopSeq;
   query.lang = this.options.LANG;
 
   if (this.options.verbose) {
-    console.log(`${KMB_API_BASE}?${querystring.stringify(query)}`)
+    console.log(`${KMB_API_BASE}?${querystring.stringify(query)}`);
   }
   return fetchJson(`${KMB_API_BASE}?${querystring.stringify(query)}`)
     .then(result => {
+      if (this.options.verbose >= 3) {
+        console.log(JSON.stringify(result, null, 2));
+      }
       assert(result.result);
       return result.data;
     })
     .then(transformEta);
-}
+};
 
 module.exports = KMBInfo;

@@ -1,6 +1,7 @@
+/* global fetch:false */
 // assuming `fetch()` is available
 
-function checkStatus(response) {
+function checkStatus (response) {
   if (response.status >= 200 && response.status < 300) {
     return response;
   } else {
@@ -10,12 +11,12 @@ function checkStatus(response) {
   }
 }
 
-function parseJSON(response) {
+function parseJSON (response) {
   return response.json();
 }
 
-module.exports = function(url) {
+module.exports = function (url) {
   return fetch(url)
     .then(checkStatus)
     .then(parseJSON);
-}
+};
