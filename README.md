@@ -20,7 +20,7 @@ https://runkit.com/leesei/hkbus-demo
 
 ## References
 
-https://db.kmbeta.ml/
-https://github.com/mob41/KmbETA-API
-https://github.com/mob41/KmbETA-DB
-https://github.com/alvinhkh/buseta
+https://db.kmbeta.ml/  
+https://github.com/mob41/KmbETA-API  
+https://github.com/mob41/KmbETA-DB  
+https://github.com/alvinhkh/buseta  
