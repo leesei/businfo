@@ -4,12 +4,12 @@ const querystring = require('querystring');
 const fetchJson = require('./fetchJson');
 const helper = require('./helper');
 
-function extractRouteInfo (stop, options) {
+function extractRouteInfo (basicInfo, route, options) {
   return {
-    route: stop.Route,
-    bound: Number.parseInt(stop.Bound),
-    origin: stop[options.ORIGIN_FIELD],
-    dest: stop[options.DEST_FIELD]
+    route: route.route,
+    bound: route.bound,
+    origin: basicInfo[options.ORIGIN_FIELD],
+    dest: basicInfo[options.DEST_FIELD]
   };
 }
 
@@ -122,10 +122,10 @@ KMBInfo.prototype.getStops = function (route, bound) {
               console.log(JSON.stringify(result, null, 2));
             }
             assert(result.result);
-            const route = extractRouteInfo(result.data.routeStops[0], this.options);
-            route.stops = result.data.routeStops.map(
+            const ret = extractRouteInfo(result.data.basicInfo, result.data.route, this.options);
+            ret.stops = result.data.routeStops.map(
               stop => transformStop(stop, this.options));
-            return route;
+            return ret;
           });
         });
     });
